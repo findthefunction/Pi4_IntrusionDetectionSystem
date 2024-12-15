@@ -20,6 +20,12 @@ This project is a foundational Intrusion Detection System (IDS) designed to run 
 - **Logging:**
   - Logs alerts to both a file and the console with timestamps and severity levels.
 
+- **Dependency Management:**
+  - Utilizes `pipenv` for managing Python dependencies.
+
+- **Containerization:**
+  - Dockerized application for easy deployment and scalability.
+
 - **Modular Design:**
   - Easily extendable with additional detection modules.
   - Supports multiple network interfaces.
@@ -37,18 +43,104 @@ This project is a foundational Intrusion Detection System (IDS) designed to run 
   - Ethernet connection to a wireless router
 
 - **Software:**
-  - Python 3.x
+  - Docker
+  - Docker Compose (optional)
+  - `pipenv`
 
 ### Setup Steps
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/findthefunction/intrusion-detection.git
-   cd intrusion-detection
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/intrusion-detection.git
+cd intrusion-detection
+```
 
 2. **Install Dependencies**
 ```
 sudo apt-get update
-sudo apt-get install python3-pip libpcap-dev
-sudo pip3 install -r requirements.txt
+sudo pip3 install pipenv
 ```
+Initialize pipenv and install dependencies:
+```
+pipenv install
+```
+
+3. **Build Docker Image**
+```
+docker build -t pids .
+```
+
+4. **Run Docker Container**
+```
+sudo docker run --rm -it \
+    --net=host \
+    --cap-add=NET_ADMIN \
+    --cap-add=NET_RAW \
+    --name raspberry-pi-ids \
+    raspberry-pi-ids
+```
+**Explaination**
+        --net=host: Shares the host's network stack, allowing the container to access network interfaces directly.
+        --cap-add=NET_ADMIN and --cap-add=NET_RAW: Grants the container the necessary capabilities to capture packets.
+        --rm: Automatically removes the container when it exits.
+        -it: Runs the container in interactive mode with a pseudo-TTY.
+
+Verify the container is running:
+```
+sudo docker ps
+```
+5. **Set Up as a systemd Service**
+To run the IDS as a background service using Docker:
+    1.  Create Service File:
+    ```
+    sudo nano /etc/systemd/system/ids.service
+    ```
+    2. Add the following configuration:
+    ```
+    [Unit]
+    Description=Intrusion Detection System
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/bin/docker-compose up
+    WorkingDirectory=/home/pi/intrusion-detection/
+    Restart=always
+    User=pi  # Replace with your username
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+    4.  Enable/ start service
+    ```
+    sudo systemctl daemon-reload
+    sudo systemctl enable ids.service
+    sudo systemctl start ids.service
+    ```
+    5. Check Service Status
+    ```
+    sudo systemctl status ids.service
+    ```
+6. **Configuring Multiple Interfaces**
+When adding a Wi-Fi card with monitor mode support:
+
+Update utils/config.py:
+```
+INTERFACES = ["eth0", "wlan1"]  # Add your monitor mode Wi-Fi interface
+```
+Rebuild and Restart the Docker Container:
+```docker-compose down
+docker-compose up -d --build
+```
+
+## Usage
+
+**View real-time logs**
+``` 
+sudo docker logs -f pids
+```
+**Stop pids**
+```
+sudo systemctl stop ids.service
+```
+

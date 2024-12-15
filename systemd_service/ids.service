@@ -1,0 +1,12 @@
+[Unit]
+Description=Intrusion Detection System
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/docker-compose up
+WorkingDirectory=/home/pi/intrusion-detection/
+Restart=always
+User=pi  # Replace with your username
+
+[Install]
+WantedBy=multi-user.target
